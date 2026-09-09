@@ -14,11 +14,11 @@ public enum CoinScene {
 
     // Coin proportions, in coin-diameter units (the coin is 1.0 wide).
     private static let baseDepth: CGFloat = 0.10
-    private static let artScale: CGFloat = 0.55
+    private static let artScale: CGFloat = 0.50
     private static let wireWidth: CGFloat = 0.012
     private static let fieldRadius: Double = 0.30
-    private static let textRadius: Double = 0.385
-    private static let capHeight: Double = 0.056
+    private static let textRadius: Double = 0.378
+    private static let capHeight: Double = 0.054
 
     public static func makeScene(design: CoinDesign) -> SCNScene {
         let scene = SCNScene()

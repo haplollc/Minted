@@ -41,7 +41,7 @@ extension CoinDesign {
     /// Rosette petals behind the art: ring sectors with the gold face
     /// showing through the gaps, so the backdrop is drawn by the metal as
     /// much as by the enamel.
-    func petalPath(inner: Double = 0.205, outer: Double = 0.315) -> CGPath {
+    func petalPath(inner: Double = 0.19, outer: Double = 0.30) -> CGPath {
         let path = CGMutablePath()
         let count = 10
         let gap = 0.22
@@ -84,7 +84,7 @@ extension CoinDesign {
         let bead = 0.011
         for i in 0..<count {
             let theta = Double(i) / Double(count) * 2 * .pi
-            let r = radius(at: theta) * 0.88
+            let r = radius(at: theta) * 0.90
             let cx = 0.5 + r * cos(theta), cy = 0.5 + r * sin(theta)
             path.addEllipse(in: CGRect(x: cx - bead, y: cy - bead,
                                        width: 2 * bead, height: 2 * bead))
@@ -152,16 +152,27 @@ extension CoinDesign {
             letters.append((letter ?? CGMutablePath(), Double(advance.width) * scale))
         }
         guard !letters.isEmpty else { return CGMutablePath() }
-        let tracking = capHeight * 0.24
-        let total = letters.reduce(0) { $0 + $1.advance + tracking } - tracking
-        let sweep = total / textRadius
+        var tracking = capHeight * 0.24
+        var total = letters.reduce(0) { $0 + $1.advance + tracking } - tracking
+        var sweep = total / textRadius
+        // Long texts shrink to fit a fixed arc instead of sweeping into the
+        // art's corners; letter paths rescale with the same factor below.
+        let maxSweep = 1.9
+        var shrink = 1.0
+        if sweep > maxSweep {
+            shrink = maxSweep / sweep
+            tracking *= shrink
+            total = letters.reduce(0) { $0 + $1.advance * shrink + tracking } - tracking
+            sweep = total / textRadius
+        }
 
         let combined = CGMutablePath()
         // Top text runs clockwise over the crown; bottom text counter-clockwise
         // under the base, so both read left to right with feet toward center.
         var angle = onTop ? (-.pi / 2 - sweep / 2) : (.pi / 2 + sweep / 2)
         for letter in letters {
-            let step = (letter.advance + tracking) / textRadius
+            let advance = letter.advance * shrink
+            let step = (advance + tracking) / textRadius
             let mid = onTop ? angle + step / 2 : angle - step / 2
             let cx = 0.5 + textRadius * cos(mid)
             let cy = 0.5 + textRadius * sin(mid)
@@ -171,7 +182,7 @@ extension CoinDesign {
             var transform = CGAffineTransform.identity
                 .translatedBy(x: cx, y: cy)
                 .rotated(by: upright)
-                .scaledBy(x: scale, y: -scale)
+                .scaledBy(x: scale * shrink, y: -scale * shrink)
                 .translatedBy(x: -letter.advance / scale / 2, y: -Double(CTFontGetCapHeight(font)) / 2)
             if let placed = letter.path.copy(using: &transform) {
                 combined.addPath(placed)

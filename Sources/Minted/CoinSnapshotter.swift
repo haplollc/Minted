@@ -19,7 +19,7 @@ public final class CoinSnapshotter: @unchecked Sendable {
     }()
 
     /// Bump when the rendered look changes so stale disk renders regenerate.
-    private static let version = "v4"
+    private static let version = "v5"
 
     /// A still render of the coin, `pixelSize` square, from cache when
     /// possible. The key folds in the design fingerprint, the size, and the
