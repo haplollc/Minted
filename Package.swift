@@ -8,7 +8,7 @@ let package = Package(
         .library(name: "Minted", targets: ["Minted"]),
     ],
     targets: [
-        .target(name: "Minted"),
+        .target(name: "Minted", resources: [.process("Resources")]),
         .testTarget(name: "MintedTests", dependencies: ["Minted"]),
     ]
 )

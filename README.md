@@ -37,6 +37,29 @@ dependencies: [
 ]
 ```
 
+## Two ways in
+
+**You have finished pin artwork.** Hand Minted the image and it does the rest:
+the artwork becomes the coin's face, the outline is traced from the image, and
+the gold in the art is detected and rendered as real metal.
+
+```swift
+let coin = try ArtworkCoin(image: UIImage(named: "eiffel-pin")!)
+
+SpinningArtworkCoinView(coin: coin)
+    .frame(width: 300, height: 300)
+```
+
+That is the whole integration. A new pin means a new PNG and nothing else.
+Six sample pins ship with the package if you want to see it work first:
+
+```swift
+let coin = try ArtworkCoin(sample: .alhambra)
+```
+
+**You want to build a coin from vectors.** Use `CoinDesign`, which composes a
+coin out of silhouette, enamel, and engraving. Read on for that.
+
 ## Mint your first coin
 
 Three lines from SVG path data to a spinning medallion:
@@ -116,7 +139,34 @@ The reverse has a die-struck orange-peel texture. Start a coin turned around:
 SpinningCoinView(design: award, initialRotation: .pi)
 ```
 
-## How it works
+## How the artwork route works
+
+Every step exists because a simpler version failed on real pins:
+
+- **The outline keys on content, not the background.** Flooding the white paper
+  inward seems obvious and is wrong: a pin's drop shadow is a desaturated halo
+  the flood happily eats, so coins grow a ragged aura and swallow any caption
+  underneath. Keying on saturated or dark pixels ignores shadows, which are
+  neither.
+- **The outline is smoothed only as much as it must be.** Hair-thin spires make
+  SceneKit refuse the whole extrusion, and a shape that fails to tessellate
+  renders as nothing at all. The smoothing radius backs off until it stops
+  eating real art.
+- **The rim band is an offset of the same polygon.** Shrinking the mask and
+  tracing it again gives a second outline that wanders relative to the first,
+  pinching the band to nothing on smooth curves. Offsetting the original keeps
+  it concentric.
+- **The band matches the frame the artwork already paints.** One fixed width
+  covers the frame on chunky pins but eats buildings and trees at the edge of
+  narrow ones, so the width is measured per pin.
+- **Texture coordinates follow the pin, not the shape's bounding box.**
+  SCNShape spreads UVs across a bounding box while the face image is square
+  with the pin centred in it, so a tall pin squeezes its artwork inward and
+  shows flat margins down both sides.
+- **Gold becomes relief, not print.** The detected gold is baked into a normal
+  map, so painted frames and filigree stand proud and catch light like metal.
+
+## How the vector route works
 
 - Your path is extruded with SceneKit's `SCNShape`: a solid gold body, stacked rim bands for the rounded lip, enamel cells sitting a hair proud of the face, and a raised gold wire hugging the art's every edge, the way a real cloisonne pin is built.
 - Materials are physically based (gold at metalness 1.0) and lit by a generated studio environment: softboxes, a window streak, a warm floor bounce. That is what sweeps across the metal when the coin turns.
@@ -131,5 +181,10 @@ SpinningCoinView(design: award, initialRotation: .pi)
 ## License
 
 Minted is available under the [MIT license](LICENSE).
+
+The sample pin artwork in `Sources/Minted/Resources/ReferenceArt` was
+generated with ChatGPT and then fed through this pipeline, which is exactly how
+the collection in Bilbo was built: describe the pin you want, generate the art,
+drop the image in, get a coin.
 
 Made by [Haplo LLC](https://haploapp.com). Extracted from [Bilbo](https://haploapp.com/bilbo), our travel planning app, where landmarks you visit are struck into a passport of medallions.

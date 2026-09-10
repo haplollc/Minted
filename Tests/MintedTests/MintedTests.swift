@@ -281,3 +281,59 @@ struct CoinSceneTests {
         #expect(Bool(true))
     }
 }
+
+@Suite("Artwork coins")
+struct ArtworkCoinTests {
+
+    @Test("Every bundled sample pin analyses into a coin")
+    func samplesAnalyse() throws {
+        for sample in ArtworkCoin.Sample.allCases {
+            let coin = try ArtworkCoin(sample: sample)
+            #expect(!coin.silhouette.isEmpty, "\(sample.rawValue) has no outline")
+            #expect(coin.rimBands.count == 1)
+            #expect(coin.face.size.width > 0)
+        }
+    }
+
+    @Test("The outline stays inside the normalized square")
+    func outlineIsNormalized() throws {
+        for sample in ArtworkCoin.Sample.allCases {
+            let box = try ArtworkCoin(sample: sample).silhouette.boundingBoxOfPath
+            #expect(box.minX >= -0.02 && box.minY >= -0.02)
+            #expect(box.maxX <= 1.02 && box.maxY <= 1.02)
+            #expect(box.width > 0.3 && box.height > 0.3, "\(sample.rawValue) traced too small")
+        }
+    }
+
+    @Test("The rim band sits inside the outline it follows")
+    func rimIsInside() throws {
+        for sample in ArtworkCoin.Sample.allCases {
+            let coin = try ArtworkCoin(sample: sample)
+            let outer = coin.silhouette.boundingBoxOfPath
+            for band in coin.rimBands {
+                let inner = band.boundingBoxOfPath
+                #expect(inner.width <= outer.width && inner.height <= outer.height,
+                        "rim escapes the outline on \(sample.rawValue)")
+            }
+        }
+    }
+
+    @Test("A blank image is refused rather than minted")
+    func blankIsRefused() {
+        let blank = UIGraphicsImageRenderer(size: CGSize(width: 200, height: 200)).image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 200, height: 200))
+        }
+        #expect(throws: (any Error).self) { try ArtworkCoin(image: blank) }
+    }
+
+    @Test("Minting builds a body plus one rim band")
+    func sceneBuilds() throws {
+        let coin = try ArtworkCoin(sample: .alhambra)
+        let scene = ArtworkCoinScene.makeScene(coin: coin)
+        let node = scene.rootNode.childNode(withName: ArtworkCoinScene.coinNodeName,
+                                            recursively: true)
+        try #require(node != nil)
+        #expect(node?.childNodes.count == 1 + coin.rimBands.count)
+    }
+}
