@@ -535,14 +535,86 @@ private extension ArtworkAnalyzer {
     static func croppedTexture(source: CGImage, crop: CGRect, mask: [Bool],
                                width: Int, height: Int) -> UIImage {
         let side = textureSize
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side))
-        return renderer.image { context in
+        let drawn = UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { ctx in
             let scale = CGFloat(side) / crop.width
-            context.cgContext.translateBy(x: 0, y: CGFloat(side))
-            context.cgContext.scaleBy(x: scale, y: -scale)
-            context.cgContext.translateBy(x: -crop.minX, y: -crop.minY)
-            context.cgContext.draw(source, in: CGRect(x: 0, y: 0, width: width, height: height))
+            ctx.cgContext.translateBy(x: 0, y: CGFloat(side))
+            ctx.cgContext.scaleBy(x: scale, y: -scale)
+            ctx.cgContext.translateBy(x: -crop.minX, y: -crop.minY)
+            ctx.cgContext.draw(source, in: CGRect(x: 0, y: 0, width: width, height: height))
         }
+        guard let cg = drawn.cgImage, var pixels = rgba(from: cg) else { return drawn }
+
+        // Sample the mask into the crop's frame so it lines up with what was
+        // just drawn.
+        var inside = [Bool](repeating: false, count: side * side)
+        for y in 0..<side {
+            for x in 0..<side {
+                let sx = Int(crop.minX + CGFloat(x) * crop.width / CGFloat(side))
+                let sy = Int(crop.minY + CGFloat(y) * crop.height / CGFloat(side))
+                guard sx >= 0, sx < width, sy >= 0, sy < height else { continue }
+                inside[y * side + x] = mask[sy * width + sx]
+            }
+        }
+        guard inside.contains(true), inside.contains(false) else { return drawn }
+
+        // Everything outside the pin (a caption, a neighbouring pin's edge,
+        // the drop shadow) is replaced by the pin's own rim colour. Those
+        // pixels sit outside the silhouette so they never render, but
+        // clearing them stops texture filtering from dragging a fringe
+        // across the coin's edge.
+        let core = eroded(inside, width: side, height: side, radius: 3)
+        var edgeR = 0, edgeG = 0, edgeB = 0, edgeCount = 0
+        for index in 0..<(side * side) where inside[index] && !core[index] {
+            edgeR += Int(pixels[index * 4])
+            edgeG += Int(pixels[index * 4 + 1])
+            edgeB += Int(pixels[index * 4 + 2])
+            edgeCount += 1
+        }
+        let fill: (UInt8, UInt8, UInt8) = edgeCount > 0
+            ? (UInt8(edgeR / edgeCount), UInt8(edgeG / edgeCount), UInt8(edgeB / edgeCount))
+            : (230, 226, 216)
+
+        // Bleed the artwork a few pixels past the outline first, so sampling
+        // right at the rim still lands on real art rather than flat fill.
+        let bleed = dilated(inside, width: side, height: side, radius: 6)
+        var source = pixels
+        for _ in 0..<6 {
+            var next = source
+            for y in 0..<side {
+                for x in 0..<side {
+                    let index = y * side + x
+                    guard bleed[index], !inside[index], next[index * 4 + 3] == 0 else { continue }
+                    for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                        let nx = x + dx, ny = y + dy
+                        guard nx >= 0, nx < side, ny >= 0, ny < side else { continue }
+                        let neighbour = ny * side + nx
+                        if inside[neighbour] || next[neighbour * 4 + 3] != 0 {
+                            for channel in 0..<4 {
+                                next[index * 4 + channel] = source[neighbour * 4 + channel]
+                            }
+                            break
+                        }
+                    }
+                }
+            }
+            source = next
+        }
+        for index in 0..<(side * side) where !inside[index] && !bleed[index] {
+            pixels[index * 4] = fill.0
+            pixels[index * 4 + 1] = fill.1
+            pixels[index * 4 + 2] = fill.2
+            pixels[index * 4 + 3] = 255
+        }
+        for index in 0..<(side * side) where !inside[index] && bleed[index] {
+            for channel in 0..<4 { pixels[index * 4 + channel] = source[index * 4 + channel] }
+        }
+
+        let context = CGContext(data: &pixels, width: side, height: side,
+                                bitsPerComponent: 8, bytesPerRow: side * 4,
+                                space: CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        guard let cleaned = context?.makeImage() else { return drawn }
+        return UIImage(cgImage: cleaned)
     }
 
     static func grayImage(_ mask: [Bool], side: Int) -> UIImage {

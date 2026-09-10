@@ -375,6 +375,8 @@ public extension ArtworkCoin {
         case alhambra
         case acropolis
         case santorini
+        case mountFuji = "mount-fuji"
+        case kinkakuJi = "kinkaku-ji"
 
         public var image: UIImage? {
             guard let url = Bundle.module.url(forResource: rawValue, withExtension: "jpg",
