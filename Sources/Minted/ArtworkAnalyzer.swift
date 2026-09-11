@@ -90,9 +90,14 @@ enum ArtworkAnalyzer {
             let maxC = max(r, max(g, b)), minC = min(r, min(g, b))
             mask[index] = (maxC - minC > 55) || (maxC < 140)
         }
-        mask = closed(mask, width: width, height: height, radius: 8)
+        // Close gently, pick the pin, then close properly. Closing hard up
+        // front welds a stray islet to the body through a hairline, and the
+        // traced outline then runs out along that hairline as a spike.
+        mask = closed(mask, width: width, height: height, radius: 4)
         mask = fillHoles(mask, width: width, height: height)
         mask = largestComponent(mask, width: width, height: height)
+        mask = closed(mask, width: width, height: height, radius: 6)
+        mask = fillHoles(mask, width: width, height: height)
         return eroded(mask, width: width, height: height, radius: 4)
     }
 
