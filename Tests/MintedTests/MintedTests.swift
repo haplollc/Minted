@@ -181,6 +181,12 @@ struct CoinDesignTests {
         var twoTone = split
         twoTone.palette.artLower = .systemTeal
         #expect(twoTone.cacheKey != split.cacheKey)
+        var gilded = base
+        gilded.palette.gold = .systemYellow
+        #expect(gilded.cacheKey != base.cacheKey)
+        var repainted = base
+        repainted.palette.art = .systemRed
+        #expect(repainted.cacheKey != base.cacheKey)
     }
 
     @Test("Petals are the signature default engraving")
