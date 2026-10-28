@@ -295,6 +295,21 @@ struct ArtworkCoinTests {
         }
     }
 
+    @Test("An explicit rimWidth is honored instead of measured")
+    func explicitRimWidth() throws {
+        let image = try #require(ArtworkCoin.Sample.alhambra.image)
+        // `offsetInward` moves the same outline inward by the band width, so a
+        // larger explicit rimWidth produces a smaller inner rim band.
+        let thin = try ArtworkCoin(image: image, rimWidth: 0.02)
+        let thick = try ArtworkCoin(image: image, rimWidth: 0.04)
+        #expect(thin.rimBands.count == 1)
+        #expect(thick.rimBands.count == 1)
+        let thinBand = try #require(thin.rimBands.first).boundingBoxOfPath
+        let thickBand = try #require(thick.rimBands.first).boundingBoxOfPath
+        #expect(thinBand.width > thickBand.width, "wider rimWidth should shrink the inner band")
+        #expect(thinBand.height > thickBand.height, "wider rimWidth should shrink the inner band")
+    }
+
     @Test("The outline stays inside the normalized square")
     func outlineIsNormalized() throws {
         for sample in ArtworkCoin.Sample.allCases {
