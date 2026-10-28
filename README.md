@@ -133,6 +133,20 @@ Two-tone art, like a snow-capped mountain:
 CoinPalette(art: .white, artLower: .systemBlue, artSplit: 0.34)
 ```
 
+Shape the outline and pick the metal. A `.custom` silhouette takes any `CGPath`
+in the normalized 0...1, y-down square, and `CoinPalette(gold:)` sets the metal
+everywhere the coin is gold:
+
+```swift
+let crest = CoinDesign(
+    svgPathData: crestSVG,
+    silhouette: .custom(shieldPath),          // any CGPath in the normalized 0...1 y-down square
+    palette: CoinPalette(gold: .systemTeal)   // the metal: body, rim, wire, engraving
+)!
+```
+
+`gold` defaults to `CoinPalette.roseGold`; `field` and `art` stay enamel either way.
+
 ## Grids and stills
 
 Live SceneKit views are for hero moments. For a grid of coins, use the
