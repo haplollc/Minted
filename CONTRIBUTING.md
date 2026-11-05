@@ -4,12 +4,14 @@ Thanks for helping. Small, focused pull requests are easiest to review. If you a
 
 ## Build and test
 
-You need Swift 5.9 or later and Xcode 15 or later, for iOS 17 or later. This is a Swift package, so it builds and tests with SwiftPM:
+You need Xcode 16 or later (the tests use Swift Testing) and an iOS 17 or later simulator. Minted is built on UIKit, so plain `swift build` and `swift test`, which build for macOS, fail. Build and test it for the iOS Simulator with `xcodebuild` instead:
 
 ```bash
-swift build
-swift test
+xcodebuild build -scheme Minted -destination "generic/platform=iOS Simulator"
+xcodebuild test -scheme Minted -destination "platform=iOS Simulator,name=iPhone 17 Pro"
 ```
+
+Any installed iPhone simulator works in the test destination. `xcrun simctl list devices available` lists them.
 
 Run the tests before opening a pull request, and note the result in the pull request description.
 
