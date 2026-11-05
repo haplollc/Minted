@@ -75,7 +75,7 @@ SpinningArtworkCoinView(coin: coin)
 ```
 
 That is the whole integration. A new pin means a new PNG and nothing else.
-Six sample pins ship with the package if you want to see it work first:
+Eight sample pins ship with the package if you want to see it work first:
 
 ```swift
 let coin = try ArtworkCoin(sample: .alhambra)
